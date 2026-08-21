@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+from contextlib import suppress
 from datetime import timedelta, datetime, timezone
 import logging
 
@@ -27,6 +28,7 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
         self.pending_relays: list[int] = []
         self._queue_task: asyncio.Task[None] | None = None
         self._keepalive_tasks: dict[int, asyncio.Task[None]] = {}
+        self._run_tokens: dict[int, int] = {}
         self.automatic_enabled = True
 
     async def _async_update_data(self) -> dict[int, Zone]:
@@ -76,16 +78,20 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
     def get_duration(self, relay: int) -> int:
         return int(self.duration_seconds.get(relay, 300))
 
-    async def _maintain_local_run(self, relay: int, end_time: datetime) -> None:
+    async def _maintain_local_run(self, relay: int, end_time: datetime, token: int) -> None:
         try:
             while True:
                 remaining = (end_time - datetime.now(timezone.utc)).total_seconds()
                 if remaining <= 0:
                     break
                 await asyncio.sleep(min(45, max(1, remaining - 10)))
+                if self._run_tokens.get(relay) != token:
+                    return
                 if (end_time - datetime.now(timezone.utc)).total_seconds() <= 0:
                     break
                 await self.api.async_command_zone("run", relay, duration=60)
+            if self._run_tokens.get(relay) != token:
+                return
             await self.api.async_command_zone("stop", relay)
             self.command_ends.pop(relay, None)
             await self.async_request_refresh()
@@ -122,8 +128,10 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
         old_task = self._keepalive_tasks.pop(relay, None)
         if old_task is not None:
             old_task.cancel()
+        token = self._run_tokens.get(relay, 0) + 1
+        self._run_tokens[relay] = token
         self._keepalive_tasks[relay] = asyncio.create_task(
-            self._maintain_local_run(relay, end_time)
+            self._maintain_local_run(relay, end_time, token)
         )
         await self.async_request_refresh()
 
@@ -138,8 +146,11 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
 
     async def async_stop(self, relay: int) -> None:
         keepalive_task = self._keepalive_tasks.pop(relay, None)
+        self._run_tokens[relay] = self._run_tokens.get(relay, 0) + 1
         if keepalive_task is not None:
             keepalive_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await keepalive_task
         if relay in self.pending_relays:
             self.pending_relays.remove(relay)
             return
