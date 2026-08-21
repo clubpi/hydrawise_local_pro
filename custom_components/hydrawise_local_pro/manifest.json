@@ -1,0 +1,12 @@
+{
+  "domain": "hydrawise_local_pro",
+  "name": "Hydrawise Local Pro",
+  "version": "1.0.1",
+  "documentation": "https://github.com/clubpi/hydrawise_local_pro",
+  "issue_tracker": "https://github.com/clubpi/hydrawise_local_pro/issues",
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "requirements": []
+}

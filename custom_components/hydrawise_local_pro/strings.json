@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hydrawise Local Pro",
+        "description": "Direkte LAN-Verbindung zum Hydrawise-Controller.",
+        "data": {
+          "host": "IP-Adresse",
+          "username": "Benutzername",
+          "password": "Lokales Controller-Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Controller nicht erreichbar",
+      "invalid_auth": "Anmeldedaten falsch",
+      "no_zones": "Keine Zonen gefunden"
+    },
+    "abort": {
+      "already_configured": "Dieser Controller ist bereits eingerichtet"
+    }
+  }
+}
