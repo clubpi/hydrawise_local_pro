@@ -9,6 +9,13 @@
           "username": "Benutzername",
           "password": "Lokales Controller-Passwort"
         }
+      },
+      "zones": {
+        "title": "Zonen auswählen",
+        "description": "Wähle die Zonen aus, die in Home Assistant angelegt werden sollen.",
+        "data": {
+          "relays": "Anzuzeigende Zonen"
+        }
       }
     },
     "error": {
@@ -18,6 +25,17 @@
     },
     "abort": {
       "already_configured": "Dieser Controller ist bereits eingerichtet"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zonen auswählen",
+        "description": "Wähle die Zonen aus, die in Home Assistant angelegt werden sollen.",
+        "data": {
+          "relays": "Anzuzeigende Zonen"
+        }
+      }
     }
   }
 }

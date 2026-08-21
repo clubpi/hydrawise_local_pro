@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
-    def __init__(self, hass: HomeAssistant, api: HydrawiseLocalProApi) -> None:
+    def __init__(self, hass: HomeAssistant, api: HydrawiseLocalProApi, selected_relays: set[int] | None = None) -> None:
         super().__init__(
             hass,
             logger=_LOGGER,
@@ -21,6 +21,7 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
             update_interval=timedelta(seconds=5),
         )
         self.api = api
+        self.selected_relays = selected_relays
         self.duration_seconds: dict[int, int] = {}
         self.command_ends: dict[int, datetime] = {}
         self.pending_relays: list[int] = []
@@ -51,6 +52,8 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
                 zone.remaining_seconds = max(0, int((self.command_ends[relay] - now).total_seconds()))
             if not zone.is_running:
                 self.command_ends.pop(relay, None)
+        if self.selected_relays is not None:
+            zones = {relay: zone for relay, zone in zones.items() if relay in self.selected_relays}
         return zones
 
     async def _start_next_after_pause(self) -> None:
