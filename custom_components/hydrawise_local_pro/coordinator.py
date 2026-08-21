@@ -60,7 +60,6 @@ class HydrawiseLocalProCoordinator(DataUpdateCoordinator[dict[int, Zone]]):
 
     async def _start_next_after_pause(self) -> None:
         try:
-            await asyncio.sleep(30)
             while self.data and any(zone.is_running for zone in self.data.values()):
                 await asyncio.sleep(5)
             if self.pending_relays:

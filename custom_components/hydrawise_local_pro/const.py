@@ -5,4 +5,4 @@ DEFAULT_USERNAME = "admin"
 DEFAULT_SCAN_INTERVAL = 5
 LOCAL_PERIOD_ID = 998
 
-PLATFORMS = ["valve", "switch", "number", "sensor", "binary_sensor"]
+PLATFORMS = ["valve", "number", "sensor", "binary_sensor"]
