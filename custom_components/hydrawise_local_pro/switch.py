@@ -4,9 +4,11 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import HydrawiseLocalProConfigEntry
+from .const import DOMAIN
 from .entity import ZoneEntity
 
 
@@ -25,6 +27,16 @@ class AutomaticSwitch(ZoneEntity, SwitchEntity):
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, next(iter(coordinator.data)))
         self._attr_unique_id = f"{coordinator.api.host}_automatic"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, coordinator_host := self.coordinator.api.host)},
+            name="Hydrawise Local Pro",
+            manufacturer="Hunter",
+            model="Hydrawise HC controller",
+            configuration_url=f"http://{coordinator_host}/",
+        )
 
     @property
     def is_on(self) -> bool:
