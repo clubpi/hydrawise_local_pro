@@ -3,4 +3,3 @@ ha_snapshot_*.json
 __pycache__/
 *.py[cod]
 .venv/
-hydrawise_local_pro/

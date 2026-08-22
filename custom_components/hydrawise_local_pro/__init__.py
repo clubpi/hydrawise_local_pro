@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import HydrawiseLocalProApi
@@ -19,7 +21,9 @@ class RuntimeData:
 type HydrawiseLocalProConfigEntry = ConfigEntry[RuntimeData]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry
+) -> bool:
     api = HydrawiseLocalProApi(
         async_get_clientsession(hass),
         entry.data[CONF_HOST],
@@ -27,20 +31,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: HydrawiseLocalProConfigE
         entry.data[CONF_PASSWORD],
     )
     selected_relays = entry.options.get(CONF_RELAYS, entry.data.get(CONF_RELAYS))
-    selected_relays_set = {int(relay) for relay in selected_relays} if selected_relays else None
+    selected_relays_set = (
+        {int(relay) for relay in selected_relays} if selected_relays else None
+    )
     coordinator = HydrawiseLocalProCoordinator(hass, api, selected_relays_set)
     await coordinator.async_config_entry_first_refresh()
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, api.host)},
+        name="Hydrawise Local Pro",
+        manufacturer="Hunter",
+        model="Hydrawise HC controller",
+        configuration_url=f"http://{api.host}/",
+    )
     entry.runtime_data = RuntimeData(coordinator)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry) -> None:
+async def async_reload_entry(
+    hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry
+) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: HydrawiseLocalProConfigEntry
+) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         await entry.runtime_data.coordinator.async_shutdown()

@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
+
+MAX_NEXT_RUN_SECONDS = 366 * 24 * 60 * 60
 
 
 @dataclass(slots=True)
@@ -46,7 +49,11 @@ def parse_schedule(payload: dict[str, Any]) -> dict[int, Zone]:
         running = running_by_relay_id.get(relay_id) or running_by_relay.get(relay)
         normal_runtime_min = _to_int(row.get("normalRuntime"))
         run_seconds = _to_int(row.get("run_seconds") or row.get("run"))
-        default_seconds = normal_runtime_min * 60 if normal_runtime_min > 0 else (run_seconds if run_seconds > 0 else 300)
+        default_seconds = (
+            normal_runtime_min * 60
+            if normal_runtime_min > 0
+            else (run_seconds if run_seconds > 0 else 300)
+        )
 
         remaining = None
         if running:
@@ -59,6 +66,11 @@ def parse_schedule(payload: dict[str, Any]) -> dict[int, Zone]:
 
         last_epoch = _to_int(row.get("lastwaterepoch"))
         next_in = _to_int(row.get("time"))
+        next_run = None
+        if controller_epoch > 0 and 0 < next_in <= MAX_NEXT_RUN_SECONDS:
+            next_run = datetime.fromtimestamp(
+                controller_epoch + next_in, tz=timezone.utc
+            )
         out[relay] = Zone(
             relay=relay,
             relay_id=relay_id,
@@ -66,9 +78,10 @@ def parse_schedule(payload: dict[str, Any]) -> dict[int, Zone]:
             default_run_seconds=default_seconds,
             is_running=bool(running),
             remaining_seconds=remaining,
-            last_watered=datetime.fromtimestamp(last_epoch, tz=timezone.utc) if last_epoch > 0 else None,
-            next_run=datetime.fromtimestamp(controller_epoch + next_in, tz=timezone.utc)
-                     if controller_epoch > 0 and next_in > 0 else None,
+            last_watered=datetime.fromtimestamp(last_epoch, tz=timezone.utc)
+            if last_epoch > 0
+            else None,
+            next_run=next_run,
             suspended=bool(_to_int(row.get("suspended"))),
         )
     return out
